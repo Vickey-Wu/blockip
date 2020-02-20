@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
 REDIS = {
-    'host': '111.229.39.228',
-    'port': '83',
+    'host': 'redis_host',
+    'port': 'redis_port',
     'db': 0,
     'password': ''
 }

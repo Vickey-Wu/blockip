@@ -72,7 +72,6 @@ class NginxLog(object):
                             ip_dict[ip_route] = tmp_ip_dict[ip_route]
                     else:
                         tmp_ip_dict[ip_route] = 1
-        print(ip_dict)
         return ip_dict
 
 
@@ -116,22 +115,22 @@ class BlockIp(object):
             ip = route_ip.decode('utf-8').split(':')[1]
             if not self.con.get(route_ip) and self.check_firewall(ip):
                 self.delete_firewall(ip)
-                print('删除' + ip + '的已过期防火墙策略')
+                lg.logger.info('删除%s的已过期防火墙策略' % ip)
             else:
-                print('无遗留未删除过期防火墙策略')
+                lg.logger.info('无遗留未删除过期防火墙策略')
 
     def extend_block_time(self, route_ip, frequency, block_time, ip):
         # 延长过期时间并检查防火墙是否存在
         if not self.con.get(route_ip):
             self.con.set(route_ip, frequency)
             self.con.expire(route_ip, block_time)
-            print('已过期，延长过期时间')
+            lg.logger.info('已过期，延长过期时间')
             # 检查防火墙禁用该ip策略是否还在, 不在则加上
             if self.check_firewall(ip):
-                print('已存在防火墙策略,无需重复添加')
+                lg.logger.info('已存在防火墙策略,无需重复添加')
             else:
                 self.add_firewall(ip)
-                print('已存在历史列表的IP再次超过限制，重新加入防火墙')
+                lg.logger.info('已存在历史列表的IP再次超过限制，重新加入防火墙')
 
     def new_ip_add_firewall(self, route_ip, frequency, ip):
         # 还未在历史列表出现过的新ip超过现在加入防火墙
@@ -141,7 +140,7 @@ class BlockIp(object):
         self.con.hset('block_ip_history', route_ip, block_ip_value)
         # 将ip加入防火墙禁用策略
         self.add_firewall(ip)
-        print('超过限制的新IP加入防火墙')
+        lg.logger.info('超过限制的新IP加入防火墙')
 
     def history_ip_add_firewall(self, route_ip, latest_frequency, ip):
         frequency, block_time, start_time = self.get_block_ip_history(route_ip)
@@ -164,10 +163,10 @@ class BlockIp(object):
                 self.con.expire(route_ip, expire_time)
             # 检查防火墙禁用该ip策略是否还在, 不在则加上
             if self.check_firewall(ip):
-                print('IP仍在禁用中且已存在防火墙策略,无需重复添加')
+                lg.logger.info('IP仍在禁用中且已存在防火墙策略,无需重复添加')
             else:
                 self.add_firewall(ip)
-                print('未过期但无防火墙策略，已重新添加')
+                lg.logger.info('未过期但无防火墙策略，已重新添加')
 
     def block_ip(self):
         for k, v in self.nl.get_ip_frequency().items():
@@ -180,6 +179,7 @@ class BlockIp(object):
 
 
 if __name__ == '__main__':
+    lg = Logger('/var/log/nginx/blockip.log',level='info')
     nl = NginxLog()
     # 先清除临时生成的log文件
     nl.clear_tmp_log()
