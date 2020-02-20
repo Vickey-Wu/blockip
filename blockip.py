@@ -27,6 +27,19 @@ class NginxLog(object):
             for c in content:
                 f.write(c)
 
+    def read_whitelist(self, file_name):
+        white_list = []
+        with open(file_name, 'r') as f:
+            for c in f:
+                white_list.append(c.strip())
+        return white_list
+
+    def is_intranet_ip(self, ip):
+        if re.match('^10\.', ip) or re.match('^172\.16\.', ip) or re.match('^192\.168\.', ip):
+            return True
+        else:
+            return False
+
     def get_period_log(self):
         TIMEDELTA = datetime.timedelta(minutes=INTERVAL)
         LOG_START_ANALYZE_DATETIME = (datetime.datetime.today() - TIMEDELTA)
@@ -44,14 +57,17 @@ class NginxLog(object):
         with open(self.get_period_log()) as f:
             for i in f:
                 spec_route = i.split('"')[1].split(' ')[1]
-                ip_route = i.split('"')[1].split(' ')[1] + ':' + i.split(' ')[0]
-                if spec_route == ROUTE and ip_route in tmp_ip_dict.keys():
-                    tmp_ip_dict[ip_route] += 1
-                    # 将超过限制的ip加入字典
-                    if tmp_ip_dict[ip_route] >= FREQUENCY:
-                        ip_dict[ip_route] = tmp_ip_dict[ip_route]
-                else:
-                    tmp_ip_dict[ip_route] = 1
+                ip = i.split(' ')[0]
+                # 如果IP在白名单列表或是内网地址则忽略
+                if not self.is_intranet_ip(ip) and ip not in self.read_whitelist('whitelist.txt'):
+                    ip_route = i.split('"')[1].split(' ')[1] + ':' + i.split(' ')[0]
+                    if spec_route == ROUTE and ip_route in tmp_ip_dict.keys():
+                        tmp_ip_dict[ip_route] += 1
+                        # 将超过限制的ip加入字典
+                        if tmp_ip_dict[ip_route] >= FREQUENCY:
+                            ip_dict[ip_route] = tmp_ip_dict[ip_route]
+                    else:
+                        tmp_ip_dict[ip_route] = 1
         print(ip_dict)
         return ip_dict
 
@@ -75,15 +91,15 @@ class BlockIp(object):
             return False
 
     def add_firewall(self, block_ip):
-        add_cmd = 'iptables -A INPUT -s ' + block_ip + ' -j DROP'
+        add_cmd = '/sbin/iptables -A INPUT -s ' + block_ip + ' -j DROP'
         os.system(add_cmd)
 
     def delete_firewall(self, block_ip):
-        del_cmd = 'iptables -D INPUT -s ' + block_ip + ' -j DROP'
+        del_cmd = '/sbin/iptables -D INPUT -s ' + block_ip + ' -j DROP'
         os.system(del_cmd)
 
     def check_firewall(self, block_ip):
-        check_cmd = 'iptables -C INPUT -s ' + block_ip + ' -j DROP'
+        check_cmd = '/sbin/iptables -C INPUT -s ' + block_ip + ' -j DROP'
         if os.system(check_cmd) == 0:
             return True
         else:

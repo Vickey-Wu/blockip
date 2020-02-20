@@ -2,7 +2,7 @@
 
 REDIS = {
     'host': 'redis_host',
-    'port': 'redis_port',
+    'port': 'port',
     'db': 0,
     'password': ''
 }
