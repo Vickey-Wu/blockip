@@ -3,7 +3,6 @@
 import redis
 import os
 import re
-import subprocess
 import time
 import datetime
 import linecache
@@ -26,6 +25,11 @@ class NginxLog(object):
         with open(file_name, 'w') as f:
             for c in content:
                 f.write(c)
+
+    def clear_tmp_log(self):
+        log_file_name = time.strftime("%Y%m",time.localtime())
+        clear_cmd = '/bin/rm /var/log/nginx/' + log_file_name + '*.log'
+        os.system(clear_cmd)
 
     def read_whitelist(self, file_name):
         white_list = []
@@ -75,7 +79,7 @@ class NginxLog(object):
 class BlockIp(object):
     def __init__(self):
         self.limitation = int(FREQUENCY) * int(INTERVAL)
-        self.lg = Logger("/var/log/block_log.log",level="info")
+        self.lg = Logger("/var/log/nginx/block_log.log",level="info")
         self.nl = NginxLog()
         pool = redis.ConnectionPool(host=REDIS['host'], port=REDIS['port'], password=REDIS['password'], db=REDIS['db'])
         self.con = redis.Redis(connection_pool=pool)
@@ -176,6 +180,9 @@ class BlockIp(object):
 
 
 if __name__ == '__main__':
+    nl = NginxLog()
+    # 先清除临时生成的log文件
+    nl.clear_tmp_log()
     bi = BlockIp()
     # 先清除已有过期防火墙策略
     bi.clear_expire_firewall()
