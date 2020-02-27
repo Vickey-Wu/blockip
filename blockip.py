@@ -39,7 +39,7 @@ class NginxLog(object):
         return white_list
 
     def is_intranet_ip(self, ip):
-        if re.match('^10\.', ip) or re.match('^172\.16\.', ip) or re.match('^192\.168\.', ip):
+        if re.match('^10\.', ip) or re.match('^172\.(1[6-9]|2[0-9]|3[0-1])\.', ip) or re.match('^192\.168\.', ip):
             return True
         else:
             return False
